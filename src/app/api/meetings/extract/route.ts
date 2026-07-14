@@ -52,6 +52,11 @@ Tarihler varsa ISO formatında yaz (YYYY-MM-DD). Türkçe cevapla.`;
     const raw = completion.choices[0].message.content ?? '{}';
     const extracted = JSON.parse(raw);
 
+    const safeDate = (v: unknown) => {
+      if (!v || typeof v !== 'string') return null;
+      return /^\d{4}-\d{2}-\d{2}$/.test(v.trim()) ? v.trim() : null;
+    };
+
     const { rows: [meeting] } = await sql`
       INSERT INTO meetings (title, type, raw_notes, summary)
       VALUES (${title}, ${type}, ${notes}, ${extracted.summary})
@@ -64,7 +69,7 @@ Tarihler varsa ISO formatında yaz (YYYY-MM-DD). Türkçe cevapla.`;
       for (const t of extracted.tasks) {
         await sql`
           INSERT INTO tasks (meeting_id, title, assignee, due_date, priority)
-          VALUES (${meetingId}, ${t.title}, ${t.assignee}, ${t.due_date}, ${t.priority ?? 'medium'})
+          VALUES (${meetingId}, ${t.title}, ${t.assignee}, ${safeDate(t.due_date)}, ${t.priority ?? 'medium'})
         `;
       }
     }
@@ -82,7 +87,7 @@ Tarihler varsa ISO formatında yaz (YYYY-MM-DD). Türkçe cevapla.`;
       for (const c of extracted.commitments) {
         await sql`
           INSERT INTO commitments (meeting_id, party, content, due_date)
-          VALUES (${meetingId}, ${c.party}, ${c.content}, ${c.due_date})
+          VALUES (${meetingId}, ${c.party}, ${c.content}, ${safeDate(c.due_date)})
         `;
       }
     }
