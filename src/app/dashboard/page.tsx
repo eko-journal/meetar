@@ -22,6 +22,7 @@ interface Meeting {
   title: string;
   type: string;
   summary: string;
+  scheduled_at: string;
   created_at: string;
   company_name: string | null;
   tasks: Task[];
@@ -206,7 +207,7 @@ export default function Dashboard() {
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
                         <span style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font-mono)' }}>
-                          {new Date(m.created_at).toLocaleDateString('tr-TR')}
+                          {new Date(m.scheduled_at).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </span>
                         <span style={{ fontSize: 10, color: 'var(--text3)' }}>{expanded ? '▲' : '▼'}</span>
                       </div>

@@ -47,6 +47,7 @@ export default function Home() {
   const [title, setTitle]       = useState('');
   const [type, setType]         = useState<'customer' | 'internal' | 'partner'>('internal');
   const [notes, setNotes]       = useState('');
+  const [meetingDate, setMeetingDate] = useState('');
   const [companyId, setCompanyId] = useState('');
   const [companies, setCompanies] = useState<Company[]>([]);
   const [newCompany, setNewCompany] = useState('');
@@ -87,7 +88,7 @@ export default function Home() {
       const res = await fetch('/api/meetings/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, type, notes, company_id: companyId || null }),
+        body: JSON.stringify({ title, type, notes, company_id: companyId || null, meeting_date: meetingDate || null }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Hata');
@@ -142,6 +143,14 @@ export default function Home() {
               <option value="partner">Ortak</option>
             </select>
           </div>
+
+          {/* Tarih */}
+          <input
+            type="datetime-local"
+            value={meetingDate}
+            onChange={e => setMeetingDate(e.target.value)}
+            style={{ ...inputStyle, color: meetingDate ? 'var(--black)' : 'var(--text3)', width: 'auto' }}
+          />
 
           {/* Şirket seçimi */}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

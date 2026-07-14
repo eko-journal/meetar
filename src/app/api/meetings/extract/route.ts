@@ -5,7 +5,7 @@ import { sql } from '@/lib/db';
 const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export async function POST(req: NextRequest) {
-  const { title, type, notes, company_id } = await req.json();
+  const { title, type, notes, company_id, meeting_date } = await req.json();
 
   if (!notes?.trim()) {
     return NextResponse.json({ error: 'Notlar boş olamaz' }, { status: 400 });
@@ -66,8 +66,8 @@ Tarihler varsa ISO formatında yaz (YYYY-MM-DD). Türkçe cevapla.`;
     };
 
     const { rows: [meeting] } = await sql`
-      INSERT INTO meetings (title, type, raw_notes, summary, company_id)
-      VALUES (${title}, ${type}, ${notes}, ${extracted.summary}, ${company_id ?? null})
+      INSERT INTO meetings (title, type, raw_notes, summary, company_id, scheduled_at)
+      VALUES (${title}, ${type}, ${notes}, ${extracted.summary}, ${company_id ?? null}, ${meeting_date ?? new Date().toISOString()})
       RETURNING id
     `;
 
