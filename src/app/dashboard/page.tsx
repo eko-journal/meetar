@@ -309,6 +309,14 @@ export default function Dashboard() {
                         <span style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font-mono)' }}>
                           {new Date(m.scheduled_at).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </span>
+                        <Link
+                          href={`/meetings/${m.id}`}
+                          onClick={e => e.stopPropagation()}
+                          style={{ fontSize: 12, color: 'var(--clay)', textDecoration: 'none', fontWeight: 600, padding: '2px 6px' }}
+                          title="Düzenle"
+                        >
+                          Düzenle →
+                        </Link>
                         <span style={{ fontSize: 10, color: 'var(--text3)' }}>{expanded ? '▲' : '▼'}</span>
                       </div>
                     </button>
