@@ -1,7 +1,7 @@
-import Anthropic from '@anthropic-ai/sdk';
+import Groq from 'groq-sdk';
 import { NextRequest, NextResponse } from 'next/server';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export async function POST(req: NextRequest) {
   const { title, type, notes } = await req.json();
@@ -22,7 +22,7 @@ Tür: ${meetingTypeLabel}
 Notlar/Transkript:
 ${notes}
 
-Aşağıdaki JSON formatında cevap ver (başka hiçbir şey yazma):
+Aşağıdaki JSON formatında cevap ver (başka hiçbir şey yazma, markdown kullanma):
 {
   "summary": "3-5 maddelik kısa özet (string, madde işaretleri için \\n- kullan)",
   "tasks": [
@@ -41,17 +41,19 @@ Aşağıdaki JSON formatında cevap ver (başka hiçbir şey yazma):
 Tarihler varsa ISO formatında yaz (YYYY-MM-DD). Türkçe cevapla.`;
 
   try {
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2048,
+    const completion = await client.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
       messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2,
+      response_format: { type: 'json_object' },
     });
 
-    const raw = (message.content[0] as { type: string; text: string }).text;
+    const raw = completion.choices[0].message.content ?? '{}';
     const json = JSON.parse(raw);
     return NextResponse.json(json);
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
     console.error(err);
-    return NextResponse.json({ error: 'AI çıkarma hatası' }, { status: 500 });
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
