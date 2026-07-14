@@ -31,16 +31,10 @@ interface ExtractResult {
   next_meeting_topics: string[];
 }
 
-const priorityColor: Record<Priority, string> = {
-  high: 'bg-red-100 text-red-700',
-  medium: 'bg-yellow-100 text-yellow-700',
-  low: 'bg-green-100 text-green-700',
-};
-
-const priorityLabel: Record<Priority, string> = {
-  high: 'Yüksek',
-  medium: 'Orta',
-  low: 'Düşük',
+const priorityStyle: Record<Priority, { bg: string; text: string; label: string }> = {
+  high:   { bg: '#FEF2F2', text: '#B91C1C', label: 'Yüksek' },
+  medium: { bg: '#FFF7ED', text: '#C08457', label: 'Orta'   },
+  low:    { bg: '#F1F6E8', text: '#5F7F3F', label: 'Düşük'  },
 };
 
 export default function Home() {
@@ -74,31 +68,49 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <nav className="border-b border-gray-900 px-6 py-4 flex items-center justify-between">
-        <span className="font-bold text-lg">meetar</span>
-        <div className="flex gap-4 text-sm">
-          <Link href="/dashboard" className="text-gray-500 hover:text-gray-300 transition-colors">Dashboard</Link>
-          <Link href="/" className="text-white font-medium">+ Yeni Toplantı</Link>
+    <div style={{ minHeight: '100vh', background: 'var(--ivory)' }}>
+      {/* Nav */}
+      <nav style={{ borderBottom: '1px solid var(--border)', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'white' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <svg width="20" height="20" viewBox="0 0 140 140" fill="none">
+            <path d="M107 39A48 48 0 1 0 107 101" stroke="#D97757" strokeWidth="11" strokeLinecap="round"/>
+            <circle cx="70" cy="70" r="7" fill="#788C5D"/>
+          </svg>
+          <span style={{ fontWeight: 600, fontSize: 16, color: 'var(--black)', letterSpacing: '-0.3px' }}>meetar</span>
+        </div>
+        <div style={{ display: 'flex', gap: 20, fontSize: 13 }}>
+          <Link href="/dashboard" style={{ color: 'var(--text2)', textDecoration: 'none' }}>Dashboard</Link>
+          <Link href="/" style={{ color: 'var(--clay)', fontWeight: 600, textDecoration: 'none' }}>+ Yeni Toplantı</Link>
         </div>
       </nav>
-      <div className="max-w-3xl mx-auto p-6">
-        <p className="text-gray-500 text-sm mb-8">Toplantı notunu gir, AI çıkarsın</p>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mb-8">
-          <div className="flex gap-3">
+      <div style={{ maxWidth: 680, margin: '0 auto', padding: '40px 24px' }}>
+        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 28, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          Toplantı notunu gir, AI çıkarsın
+        </p>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
+          <div style={{ display: 'flex', gap: 10 }}>
             <input
               type="text"
               placeholder="Toplantı başlığı"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              className="flex-1 bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-gray-600"
               required
+              style={{
+                flex: 1, border: '1px solid var(--border)', borderRadius: 8,
+                padding: '10px 14px', fontSize: 14, color: 'var(--black)',
+                background: 'white', outline: 'none', fontFamily: 'inherit',
+              }}
             />
             <select
               value={type}
               onChange={e => setType(e.target.value as typeof type)}
-              className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-gray-600"
+              style={{
+                border: '1px solid var(--border)', borderRadius: 8,
+                padding: '10px 14px', fontSize: 13, color: 'var(--text2)',
+                background: 'white', outline: 'none', fontFamily: 'inherit',
+              }}
             >
               <option value="internal">İç toplantı</option>
               <option value="customer">Müşteri</option>
@@ -111,118 +123,110 @@ export default function Home() {
             value={notes}
             onChange={e => setNotes(e.target.value)}
             rows={10}
-            className="w-full bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-gray-600 resize-none"
             required
+            style={{
+              border: '1px solid var(--border)', borderRadius: 8,
+              padding: '12px 14px', fontSize: 13, color: 'var(--black)',
+              background: 'white', outline: 'none', resize: 'none',
+              fontFamily: 'inherit', lineHeight: 1.6,
+            }}
           />
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-white text-gray-950 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            style={{
+              background: loading ? 'var(--border)' : 'var(--clay)',
+              color: 'white', border: 'none', borderRadius: 8,
+              padding: '11px 0', fontSize: 14, fontWeight: 600,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit', transition: 'background 0.15s',
+            }}
           >
             {loading ? 'Analiz ediliyor...' : 'Analiz Et'}
           </button>
         </form>
 
         {error && (
-          <div className="bg-red-950 border border-red-800 text-red-300 rounded-lg px-4 py-3 text-sm mb-6">
+          <div style={{ background: '#FEF2F2', border: '1px solid #B91C1C', color: '#B91C1C', borderRadius: 8, padding: '12px 16px', fontSize: 13, marginBottom: 24 }}>
             {error}
           </div>
         )}
 
         {result && (
-          <div className="space-y-6">
-            <section className="bg-gray-900 rounded-xl p-5">
-              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Özet</h2>
-              <div className="text-sm leading-relaxed whitespace-pre-line text-gray-200">
-                {result.summary}
-              </div>
-            </section>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
+            {/* Özet */}
+            <Section label="Özet">
+              <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.7, whiteSpace: 'pre-line' }}>{result.summary}</p>
+            </Section>
+
+            {/* Görevler */}
             {result.tasks.length > 0 && (
-              <section className="bg-gray-900 rounded-xl p-5">
-                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  Görevler ({result.tasks.length})
-                </h2>
-                <div className="space-y-2">
-                  {result.tasks.map((task, i) => (
-                    <div key={i} className="flex items-start gap-3 py-2 border-b border-gray-800 last:border-0">
-                      <input type="checkbox" className="mt-0.5 accent-white" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-100">{task.title}</p>
-                        <div className="flex gap-2 mt-1 flex-wrap">
-                          {task.assignee && (
-                            <span className="text-xs text-gray-500">{task.assignee}</span>
-                          )}
-                          {task.due_date && (
-                            <span className="text-xs text-gray-500">· {task.due_date}</span>
-                          )}
+              <Section label={`Görevler (${result.tasks.length})`}>
+                {result.tasks.map((task, i) => {
+                  const s = priorityStyle[task.priority];
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderBottom: i < result.tasks.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                      <input type="checkbox" style={{ marginTop: 3, accentColor: 'var(--clay)', cursor: 'pointer' }} />
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 14, color: 'var(--black)', margin: 0 }}>{task.title}</p>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                          {task.assignee && <span style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'var(--font-mono)' }}>{task.assignee}</span>}
+                          {task.due_date && <span style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'var(--font-mono)' }}>· {task.due_date}</span>}
                         </div>
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${priorityColor[task.priority]}`}>
-                        {priorityLabel[task.priority]}
+                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, fontWeight: 600, background: s.bg, color: s.text, whiteSpace: 'nowrap' }}>
+                        {s.label}
                       </span>
                     </div>
-                  ))}
-                </div>
-              </section>
+                  );
+                })}
+              </Section>
             )}
 
+            {/* Kararlar */}
             {result.decisions.length > 0 && (
-              <section className="bg-gray-900 rounded-xl p-5">
-                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  Kararlar ({result.decisions.length})
-                </h2>
-                <ul className="space-y-2">
-                  {result.decisions.map((d, i) => (
-                    <li key={i} className="text-sm text-gray-200 flex gap-2">
-                      <span className="text-gray-600 mt-0.5">▸</span>
-                      {d.content}
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              <Section label={`Kararlar (${result.decisions.length})`}>
+                {result.decisions.map((d, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 10, padding: '6px 0', borderBottom: i < result.decisions.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    <span style={{ color: 'var(--clay)', marginTop: 1 }}>▸</span>
+                    <p style={{ fontSize: 14, color: 'var(--text1)', margin: 0, lineHeight: 1.5 }}>{d.content}</p>
+                  </div>
+                ))}
+              </Section>
             )}
 
+            {/* Taahhütler */}
             {result.commitments.length > 0 && (
-              <section className="bg-gray-900 rounded-xl p-5">
-                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  Taahhütler ({result.commitments.length})
-                </h2>
-                <div className="space-y-2">
-                  {result.commitments.map((c, i) => (
-                    <div key={i} className="flex items-start gap-3 text-sm">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
-                        c.party === 'me'
-                          ? 'bg-blue-950 text-blue-300'
-                          : 'bg-purple-950 text-purple-300'
-                      }`}>
-                        {c.party === 'me' ? 'Ben' : 'Karşı taraf'}
-                      </span>
-                      <span className="text-gray-200">{c.content}</span>
-                      {c.due_date && (
-                        <span className="text-gray-500 shrink-0 ml-auto">{c.due_date}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </section>
+              <Section label={`Taahhütler (${result.commitments.length})`}>
+                {result.commitments.map((c, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0', borderBottom: i < result.commitments.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    <span style={{
+                      fontSize: 11, padding: '2px 8px', borderRadius: 20, fontWeight: 600, whiteSpace: 'nowrap',
+                      background: c.party === 'me' ? '#EFF6FF' : 'var(--sage-lt)',
+                      color: c.party === 'me' ? '#6A9BCC' : 'var(--sage)',
+                    }}>
+                      {c.party === 'me' ? 'Ben' : 'Karşı taraf'}
+                    </span>
+                    <p style={{ fontSize: 14, color: 'var(--text1)', margin: 0, lineHeight: 1.5 }}>{c.content}</p>
+                    {c.due_date && <span style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'var(--font-mono)', marginLeft: 'auto', whiteSpace: 'nowrap' }}>{c.due_date}</span>}
+                  </div>
+                ))}
+              </Section>
             )}
 
+            {/* Sonraki toplantı */}
             {result.next_meeting_topics.length > 0 && (
-              <section className="bg-gray-900 rounded-xl p-5">
-                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  Sonraki toplantıya taşı
-                </h2>
-                <ul className="space-y-1.5">
-                  {result.next_meeting_topics.map((t, i) => (
-                    <li key={i} className="text-sm text-gray-400 flex gap-2">
-                      <span className="text-gray-700">·</span> {t}
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              <Section label="Sonraki toplantıya taşı">
+                {result.next_meeting_topics.map((t, i) => (
+                  <p key={i} style={{ fontSize: 13, color: 'var(--text2)', margin: '4px 0', display: 'flex', gap: 8 }}>
+                    <span style={{ color: 'var(--border)' }}>·</span> {t}
+                  </p>
+                ))}
+              </Section>
             )}
+
           </div>
         )}
       </div>
@@ -230,3 +234,11 @@ export default function Home() {
   );
 }
 
+function Section({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px' }}>
+      <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', marginBottom: 12 }}>{label}</p>
+      {children}
+    </div>
+  );
+}

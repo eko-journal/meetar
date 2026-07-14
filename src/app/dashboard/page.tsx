@@ -28,16 +28,10 @@ interface Meeting {
   commitments: { id: string; party: string; content: string; resolved: boolean }[];
 }
 
-const priorityColor: Record<Priority, string> = {
-  high: 'bg-red-100 text-red-700',
-  medium: 'bg-yellow-100 text-yellow-700',
-  low: 'bg-green-100 text-green-700',
-};
-
-const priorityLabel: Record<Priority, string> = {
-  high: 'Yüksek',
-  medium: 'Orta',
-  low: 'Düşük',
+const priorityStyle: Record<Priority, { bg: string; text: string; label: string }> = {
+  high:   { bg: '#FEF2F2', text: '#B91C1C', label: 'Yüksek' },
+  medium: { bg: '#FFF7ED', text: '#C08457', label: 'Orta'   },
+  low:    { bg: '#F1F6E8', text: '#5F7F3F', label: 'Düşük'  },
 };
 
 const meetingTypeLabel: Record<string, string> = {
@@ -46,10 +40,10 @@ const meetingTypeLabel: Record<string, string> = {
   partner: 'Ortak',
 };
 
-const meetingTypeColor: Record<string, string> = {
-  customer: 'bg-blue-950 text-blue-300',
-  internal: 'bg-gray-800 text-gray-400',
-  partner: 'bg-purple-950 text-purple-300',
+const meetingTypeStyle: Record<string, { bg: string; text: string }> = {
+  customer: { bg: '#EFF6FF', text: '#6A9BCC' },
+  internal: { bg: 'var(--warm)', text: 'var(--text2)' },
+  partner:  { bg: 'var(--sage-lt)', text: 'var(--sage)' },
 };
 
 export default function Dashboard() {
@@ -89,169 +83,205 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 text-gray-100 flex items-center justify-center">
-        <p className="text-gray-500 text-sm">Yükleniyor...</p>
+      <div style={{ minHeight: '100vh', background: 'var(--ivory)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ fontSize: 13, color: 'var(--text3)', fontFamily: 'var(--font-mono)' }}>Yükleniyor...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
+    <div style={{ minHeight: '100vh', background: 'var(--ivory)' }}>
       {/* Nav */}
-      <nav className="border-b border-gray-900 px-6 py-4 flex items-center justify-between">
-        <span className="font-bold text-lg">meetar</span>
-        <div className="flex gap-4 text-sm">
-          <Link href="/dashboard" className="text-white font-medium">Dashboard</Link>
-          <Link href="/" className="text-gray-500 hover:text-gray-300 transition-colors">+ Yeni Toplantı</Link>
+      <nav style={{ borderBottom: '1px solid var(--border)', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'white' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <svg width="20" height="20" viewBox="0 0 140 140" fill="none">
+            <path d="M107 39A48 48 0 1 0 107 101" stroke="#D97757" strokeWidth="11" strokeLinecap="round"/>
+            <circle cx="70" cy="70" r="7" fill="#788C5D"/>
+          </svg>
+          <span style={{ fontWeight: 600, fontSize: 16, color: 'var(--black)', letterSpacing: '-0.3px' }}>meetar</span>
+        </div>
+        <div style={{ display: 'flex', gap: 20, fontSize: 13 }}>
+          <Link href="/dashboard" style={{ color: 'var(--clay)', fontWeight: 600, textDecoration: 'none' }}>Dashboard</Link>
+          <Link href="/" style={{ color: 'var(--text2)', textDecoration: 'none' }}>+ Yeni Toplantı</Link>
         </div>
       </nav>
 
-      <div className="max-w-4xl mx-auto p-6 space-y-8">
+      <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px 24px' }}>
 
         {/* Özet kartlar */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-gray-900 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-1">Toplantı</p>
-            <p className="text-3xl font-bold">{meetings.length}</p>
-          </div>
-          <div className="bg-gray-900 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-1">Açık görev</p>
-            <p className={`text-3xl font-bold ${openTaskCount > 0 ? 'text-yellow-400' : ''}`}>{openTaskCount}</p>
-          </div>
-          <div className="bg-gray-900 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-1">Bekleyen taahhüt</p>
-            <p className={`text-3xl font-bold ${pendingCommitments > 0 ? 'text-red-400' : ''}`}>{pendingCommitments}</p>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 32 }}>
+          <StatCard label="Toplantı" value={meetings.length} />
+          <StatCard label="Açık görev" value={openTaskCount} accent={openTaskCount > 0 ? 'var(--copper)' : undefined} />
+          <StatCard label="Bekleyen taahhüt" value={pendingCommitments} accent={pendingCommitments > 0 ? '#B91C1C' : undefined} />
         </div>
 
         {/* Görevler */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Görevler</h2>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setTaskFilter('open')}
-                className={`text-xs px-3 py-1 rounded-full transition-colors ${taskFilter === 'open' ? 'bg-white text-gray-950' : 'text-gray-500 hover:text-gray-300'}`}
-              >
-                Açık
-              </button>
-              <button
-                onClick={() => setTaskFilter('all')}
-                className={`text-xs px-3 py-1 rounded-full transition-colors ${taskFilter === 'all' ? 'bg-white text-gray-950' : 'text-gray-500 hover:text-gray-300'}`}
-              >
-                Tümü
-              </button>
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <Label>Görevler</Label>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {(['open', 'all'] as const).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setTaskFilter(f)}
+                  style={{
+                    fontSize: 12, padding: '4px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    background: taskFilter === f ? 'var(--clay)' : 'var(--warm)',
+                    color: taskFilter === f ? 'white' : 'var(--text2)',
+                    fontWeight: taskFilter === f ? 600 : 400,
+                  }}
+                >
+                  {f === 'open' ? 'Açık' : 'Tümü'}
+                </button>
+              ))}
             </div>
           </div>
 
           {filteredTasks.length === 0 ? (
-            <p className="text-gray-600 text-sm py-4">Görev yok.</p>
+            <p style={{ fontSize: 13, color: 'var(--text3)', padding: '16px 0' }}>Görev yok.</p>
           ) : (
-            <div className="bg-gray-900 rounded-xl divide-y divide-gray-800">
-              {filteredTasks.map(task => (
-                <div key={task.id} className="flex items-start gap-3 p-4">
-                  <input
-                    type="checkbox"
-                    checked={task.status === 'done'}
-                    onChange={() => toggleTask(task)}
-                    className="mt-0.5 accent-white cursor-pointer"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm ${task.status === 'done' ? 'line-through text-gray-600' : 'text-gray-100'}`}>
-                      {task.title}
-                    </p>
-                    <div className="flex gap-2 mt-1 flex-wrap items-center">
-                      <span className="text-xs text-gray-600">{task.meeting_title}</span>
-                      {task.assignee && <span className="text-xs text-gray-500">· {task.assignee}</span>}
-                      {task.due_date && <span className="text-xs text-gray-500">· {task.due_date}</span>}
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10 }}>
+              {filteredTasks.map((task, i) => {
+                const s = priorityStyle[task.priority];
+                return (
+                  <div key={task.id} style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 20px',
+                    borderBottom: i < filteredTasks.length - 1 ? '1px solid var(--border)' : 'none',
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={task.status === 'done'}
+                      onChange={() => toggleTask(task)}
+                      style={{ marginTop: 3, accentColor: 'var(--clay)', cursor: 'pointer' }}
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 14, color: task.status === 'done' ? 'var(--text3)' : 'var(--black)', margin: 0, textDecoration: task.status === 'done' ? 'line-through' : 'none' }}>
+                        {task.title}
+                      </p>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font-mono)' }}>{task.meeting_title}</span>
+                        {task.assignee && <span style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font-mono)' }}>· {task.assignee}</span>}
+                        {task.due_date && <span style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font-mono)' }}>· {task.due_date}</span>}
+                      </div>
                     </div>
+                    <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, fontWeight: 600, background: s.bg, color: s.text, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                      {s.label}
+                    </span>
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${priorityColor[task.priority]}`}>
-                    {priorityLabel[task.priority]}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
-        </section>
+        </div>
 
         {/* Toplantı geçmişi */}
-        <section>
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Toplantı Geçmişi</h2>
+        <div>
+          <Label style={{ marginBottom: 12 }}>Toplantı Geçmişi</Label>
           {meetings.length === 0 ? (
-            <p className="text-gray-600 text-sm py-4">Henüz toplantı yok.</p>
+            <p style={{ fontSize: 13, color: 'var(--text3)', padding: '16px 0' }}>Henüz toplantı yok.</p>
           ) : (
-            <div className="space-y-3">
-              {meetings.map(m => (
-                <div key={m.id} className="bg-gray-900 rounded-xl overflow-hidden">
-                  <button
-                    onClick={() => setExpandedMeeting(expandedMeeting === m.id ? null : m.id)}
-                    className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-800 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${meetingTypeColor[m.type]}`}>
-                        {meetingTypeLabel[m.type]}
-                      </span>
-                      <span className="text-sm font-medium">{m.title}</span>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-xs text-gray-600">
-                        {new Date(m.created_at).toLocaleDateString('tr-TR')}
-                      </span>
-                      <span className="text-gray-600 text-xs">{expandedMeeting === m.id ? '▲' : '▼'}</span>
-                    </div>
-                  </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {meetings.map(m => {
+                const ts = meetingTypeStyle[m.type] ?? meetingTypeStyle.internal;
+                const expanded = expandedMeeting === m.id;
+                return (
+                  <div key={m.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+                    <button
+                      onClick={() => setExpandedMeeting(expanded ? null : m.id)}
+                      style={{
+                        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '14px 20px', background: 'none', border: 'none', cursor: 'pointer',
+                        fontFamily: 'inherit', textAlign: 'left',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, fontWeight: 600, background: ts.bg, color: ts.text }}>
+                          {meetingTypeLabel[m.type]}
+                        </span>
+                        <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--black)' }}>{m.title}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                        <span style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font-mono)' }}>
+                          {new Date(m.created_at).toLocaleDateString('tr-TR')}
+                        </span>
+                        <span style={{ fontSize: 10, color: 'var(--text3)' }}>{expanded ? '▲' : '▼'}</span>
+                      </div>
+                    </button>
 
-                  {expandedMeeting === m.id && (
-                    <div className="border-t border-gray-800 p-4 space-y-4">
-                      {m.summary && (
-                        <p className="text-sm text-gray-400 whitespace-pre-line leading-relaxed">{m.summary}</p>
-                      )}
-                      {m.tasks?.length > 0 && (
-                        <div>
-                          <p className="text-xs text-gray-600 mb-2">Görevler</p>
-                          <ul className="space-y-1">
+                    {expanded && (
+                      <div style={{ borderTop: '1px solid var(--border)', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        {m.summary && (
+                          <p style={{ fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-line', lineHeight: 1.7, margin: 0 }}>{m.summary}</p>
+                        )}
+                        {m.tasks?.length > 0 && (
+                          <SubSection label="Görevler">
                             {m.tasks.map(t => (
-                              <li key={t.id} className={`text-sm flex gap-2 ${t.status === 'done' ? 'line-through text-gray-600' : 'text-gray-300'}`}>
-                                <span>·</span>{t.title}
+                              <li key={t.id} style={{ fontSize: 13, color: t.status === 'done' ? 'var(--text3)' : 'var(--text1)', textDecoration: t.status === 'done' ? 'line-through' : 'none' }}>
+                                {t.title}
                               </li>
                             ))}
-                          </ul>
-                        </div>
-                      )}
-                      {m.decisions?.length > 0 && (
-                        <div>
-                          <p className="text-xs text-gray-600 mb-2">Kararlar</p>
-                          <ul className="space-y-1">
+                          </SubSection>
+                        )}
+                        {m.decisions?.length > 0 && (
+                          <SubSection label="Kararlar">
                             {m.decisions.map(d => (
-                              <li key={d.id} className="text-sm text-gray-300 flex gap-2"><span>▸</span>{d.content}</li>
+                              <li key={d.id} style={{ fontSize: 13, color: 'var(--text1)' }}>
+                                <span style={{ color: 'var(--clay)', marginRight: 6 }}>▸</span>{d.content}
+                              </li>
                             ))}
-                          </ul>
-                        </div>
-                      )}
-                      {m.commitments?.length > 0 && (
-                        <div>
-                          <p className="text-xs text-gray-600 mb-2">Taahhütler</p>
-                          <ul className="space-y-1">
+                          </SubSection>
+                        )}
+                        {m.commitments?.length > 0 && (
+                          <SubSection label="Taahhütler">
                             {m.commitments.map(c => (
-                              <li key={c.id} className="text-sm text-gray-300 flex gap-2 items-start">
-                                <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${c.party === 'me' ? 'bg-blue-950 text-blue-400' : 'bg-purple-950 text-purple-400'}`}>
+                              <li key={c.id} style={{ fontSize: 13, color: 'var(--text1)', display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                                <span style={{
+                                  fontSize: 10, padding: '1px 6px', borderRadius: 20, fontWeight: 600, flexShrink: 0,
+                                  background: c.party === 'me' ? '#EFF6FF' : 'var(--sage-lt)',
+                                  color: c.party === 'me' ? '#6A9BCC' : 'var(--sage)',
+                                }}>
                                   {c.party === 'me' ? 'Ben' : 'Onlar'}
                                 </span>
                                 {c.content}
                               </li>
                             ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+                          </SubSection>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
-        </section>
+        </div>
       </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, accent }: { label: string; value: number; accent?: string }) {
+  return (
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px' }}>
+      <p style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', marginBottom: 8 }}>{label}</p>
+      <p style={{ fontSize: 32, fontWeight: 700, color: accent ?? 'var(--black)', margin: 0, letterSpacing: '-0.5px' }}>{value}</p>
+    </div>
+  );
+}
+
+function Label({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', display: 'block', ...style }}>
+      {children}
+    </p>
+  );
+}
+
+function SubSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font-mono)', marginBottom: 6 }}>{label}</p>
+      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>{children}</ul>
     </div>
   );
 }
