@@ -54,6 +54,16 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [taskFilter, setTaskFilter] = useState<'open' | 'all'>('open');
   const [expandedMeeting, setExpandedMeeting] = useState<string | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+  const [savingTaskId, setSavingTaskId] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!errorMsg) return;
+    const t = setTimeout(() => setErrorMsg(null), 4000);
+    return () => clearTimeout(t);
+  }, [errorMsg]);
 
   useEffect(() => {
     Promise.all([
@@ -67,13 +77,59 @@ export default function Dashboard() {
   }, []);
 
   async function toggleTask(task: Task) {
+    if (savingTaskId) return;
     const newStatus: TaskStatus = task.status === 'done' ? 'open' : 'done';
-    await fetch(`/api/tasks/${task.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
-    });
-    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: newStatus } : t));
+    setSavingTaskId(task.id);
+    try {
+      const res = await fetch(`/api/tasks/${task.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) throw new Error();
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: newStatus } : t));
+    } catch {
+      setErrorMsg('Görev güncellenemedi. Tekrar deneyin.');
+    } finally {
+      setSavingTaskId(null);
+    }
+  }
+
+  function startEdit(task: Task) {
+    setEditingTaskId(task.id);
+    setEditingTitle(task.title);
+  }
+
+  async function saveEdit(taskId: string) {
+    if (!editingTitle.trim()) { setEditingTaskId(null); return; }
+    setSavingTaskId(taskId);
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: editingTitle.trim() }),
+      });
+      if (!res.ok) throw new Error();
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, title: editingTitle.trim() } : t));
+      setEditingTaskId(null);
+    } catch {
+      setErrorMsg('Başlık kaydedilemedi. Tekrar deneyin.');
+    } finally {
+      setSavingTaskId(null);
+    }
+  }
+
+  async function deleteTask(taskId: string) {
+    if (!window.confirm('Bu görevi silmek istediğine emin misin?')) return;
+    setSavingTaskId(taskId);
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      setTasks(prev => prev.filter(t => t.id !== taskId));
+    } catch {
+      setErrorMsg('Görev silinemedi. Tekrar deneyin.');
+      setSavingTaskId(null);
+    }
   }
 
   const filteredTasks = taskFilter === 'open'
@@ -93,6 +149,16 @@ export default function Dashboard() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--ivory)' }}>
+      {errorMsg && (
+        <div style={{
+          position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)',
+          background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8,
+          padding: '10px 20px', fontSize: 13, color: '#B91C1C', zIndex: 999,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)', whiteSpace: 'nowrap',
+        }}>
+          {errorMsg}
+        </div>
+      )}
       {/* Nav */}
       <nav style={{ borderBottom: '1px solid var(--border)', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'white' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -145,30 +211,64 @@ export default function Dashboard() {
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10 }}>
               {filteredTasks.map((task, i) => {
                 const s = priorityStyle[task.priority];
+                const isEditing = editingTaskId === task.id;
+                const isSaving = savingTaskId === task.id;
                 return (
-                  <div key={task.id} style={{
-                    display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 20px',
-                    borderBottom: i < filteredTasks.length - 1 ? '1px solid var(--border)' : 'none',
-                  }}>
+                  <div key={task.id}
+                    style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 20px',
+                      borderBottom: i < filteredTasks.length - 1 ? '1px solid var(--border)' : 'none',
+                      opacity: isSaving ? 0.5 : 1,
+                      transition: 'opacity 0.15s',
+                      pointerEvents: isSaving ? 'none' : 'auto',
+                    }}
+                    className="task-row"
+                  >
                     <input
                       type="checkbox"
                       checked={task.status === 'done'}
                       onChange={() => toggleTask(task)}
-                      style={{ marginTop: 3, accentColor: 'var(--clay)', cursor: 'pointer' }}
+                      disabled={isSaving}
+                      style={{ marginTop: 3, accentColor: 'var(--clay)', cursor: 'pointer', flexShrink: 0 }}
                     />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 14, color: task.status === 'done' ? 'var(--text3)' : 'var(--black)', margin: 0, textDecoration: task.status === 'done' ? 'line-through' : 'none' }}>
-                        {task.title}
-                      </p>
+                      {isEditing ? (
+                        <input
+                          autoFocus
+                          value={editingTitle}
+                          onChange={e => setEditingTitle(e.target.value)}
+                          onBlur={() => saveEdit(task.id)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') saveEdit(task.id);
+                            if (e.key === 'Escape') setEditingTaskId(null);
+                          }}
+                          style={{ fontSize: 14, color: 'var(--black)', border: '1px solid var(--clay)', borderRadius: 6, padding: '2px 8px', fontFamily: 'inherit', width: '100%', outline: 'none' }}
+                        />
+                      ) : (
+                        <p style={{ fontSize: 14, color: task.status === 'done' ? 'var(--text3)' : 'var(--black)', margin: 0, textDecoration: task.status === 'done' ? 'line-through' : 'none', cursor: 'text' }}
+                          onDoubleClick={() => startEdit(task)}>
+                          {task.title}
+                        </p>
+                      )}
                       <div style={{ display: 'flex', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
                         <span style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font-mono)' }}>{task.meeting_title}</span>
                         {task.assignee && <span style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font-mono)' }}>· {task.assignee}</span>}
                         {task.due_date && <span style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font-mono)' }}>· {task.due_date}</span>}
                       </div>
                     </div>
-                    <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, fontWeight: 600, background: s.bg, color: s.text, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                      {s.label}
-                    </span>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, fontWeight: 600, background: s.bg, color: s.text }}>
+                        {s.label}
+                      </span>
+                      <button onClick={() => startEdit(task)} title="Düzenle"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', fontSize: 13, padding: '2px 4px', lineHeight: 1 }}>
+                        ✎
+                      </button>
+                      <button onClick={() => deleteTask(task.id)} title="Sil"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', fontSize: 14, padding: '2px 4px', lineHeight: 1 }}>
+                        ×
+                      </button>
+                    </div>
                   </div>
                 );
               })}

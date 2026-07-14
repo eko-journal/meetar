@@ -3,15 +3,31 @@ import { sql } from '@/lib/db';
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { status } = await req.json();
+  const body = await req.json();
+
+  const allowed = ['status', 'title', 'priority', 'assignee', 'due_date'];
+  const updates = Object.fromEntries(Object.entries(body).filter(([k]) => allowed.includes(k)));
+  if (!Object.keys(updates).length) return NextResponse.json({ error: 'Güncellenecek alan yok' }, { status: 400 });
 
   try {
-    const { rows: [task] } = await sql`
-      UPDATE tasks SET status = ${status}, updated_at = now()
-      WHERE id = ${id}
-      RETURNING *
-    `;
+    const sets = Object.keys(updates).map((k, i) => `${k} = $${i + 2}`).join(', ');
+    const values = [id, ...Object.values(updates)];
+    const { rows: [task] } = await sql.query(
+      `UPDATE tasks SET ${sets}, updated_at = now() WHERE id = $1 RETURNING *`,
+      values
+    );
     return NextResponse.json(task);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  try {
+    await sql`DELETE FROM tasks WHERE id = ${id}`;
+    return NextResponse.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: msg }, { status: 500 });
