@@ -30,7 +30,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const body = await req.json();
-  const allowed = ['title', 'type', 'company_id', 'scheduled_at', 'summary'];
+  const allowed = ['title', 'type', 'company_id', 'scheduled_at', 'summary', 'project_id'];
   const updates = Object.fromEntries(Object.entries(body).filter(([k]) => allowed.includes(k)));
   if (!Object.keys(updates).length) return NextResponse.json({ error: 'Güncellenecek alan yok' }, { status: 400 });
 

@@ -7,6 +7,8 @@ import Link from 'next/link';
 type Priority = 'high' | 'medium' | 'low';
 type TaskStatus = 'open' | 'in_progress' | 'done' | 'cancelled';
 
+type Visibility = 'client' | 'internal';
+
 interface Task {
   id: string;
   title: string;
@@ -14,11 +16,13 @@ interface Task {
   due_date: string | null;
   status: TaskStatus;
   priority: Priority;
+  visibility: Visibility;
 }
 
 interface Decision {
   id: string;
   content: string;
+  visibility: Visibility;
 }
 
 interface Commitment {
@@ -26,6 +30,7 @@ interface Commitment {
   party: 'me' | 'them';
   content: string;
   resolved: boolean;
+  visibility: Visibility;
 }
 
 interface Meeting {
@@ -34,6 +39,7 @@ interface Meeting {
   type: string;
   company_id: string | null;
   company_name: string | null;
+  project_id: string | null;
   scheduled_at: string;
   summary: string | null;
   raw_notes: string | null;
@@ -41,6 +47,8 @@ interface Meeting {
   decisions: Decision[];
   commitments: Commitment[];
 }
+
+interface Project { id: string; name: string; }
 
 interface Company {
   id: string;
@@ -80,6 +88,7 @@ export default function MeetingDetail() {
   const router = useRouter();
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useError();
 
@@ -106,10 +115,12 @@ export default function MeetingDetail() {
     Promise.all([
       fetch(`/api/meetings/${id}`).then(r => r.json()),
       fetch('/api/companies').then(r => r.json()),
-    ]).then(([m, c]) => {
+      fetch('/api/projects').then(r => r.json()),
+    ]).then(([m, c, p]) => {
       if (m.error) { setErrorMsg('Toplantı yüklenemedi.'); return; }
       setMeeting(m);
       setCompanies(Array.isArray(c) ? c : []);
+      setProjects(Array.isArray(p) ? p : []);
       setLoading(false);
     });
   }, [id]);
@@ -183,6 +194,23 @@ export default function MeetingDetail() {
     } catch {
       setErrorMsg('Görev kaydedilemedi.');
     }
+  }
+
+  async function toggleVisibility(type: 'task' | 'decision' | 'commitment', itemId: string, current: Visibility) {
+    const next: Visibility = current === 'client' ? 'internal' : 'client';
+    const endpoint = type === 'task' ? `/api/tasks/${itemId}` : type === 'decision' ? `/api/decisions/${itemId}` : `/api/commitments/${itemId}`;
+    try {
+      await fetch(endpoint, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ visibility: next }) });
+      setMeeting(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          tasks: type === 'task' ? prev.tasks.map(t => t.id === itemId ? { ...t, visibility: next } : t) : prev.tasks,
+          decisions: type === 'decision' ? prev.decisions.map(d => d.id === itemId ? { ...d, visibility: next } : d) : prev.decisions,
+          commitments: type === 'commitment' ? prev.commitments.map(c => c.id === itemId ? { ...c, visibility: next } : c) : prev.commitments,
+        };
+      });
+    } catch { setErrorMsg('Görünürlük güncellenemedi.'); }
   }
 
   async function deleteTask(taskId: string) {
@@ -400,6 +428,21 @@ export default function MeetingDetail() {
               {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
 
+            {projects.length > 0 && (
+              <select
+                value={meeting.project_id ?? ''}
+                onChange={e => {
+                  const val = e.target.value || null;
+                  setMeeting(prev => prev ? { ...prev, project_id: val } : prev);
+                  patchMeeting({ project_id: val });
+                }}
+                style={{ fontSize: 12, color: meeting.project_id ? 'var(--sage)' : 'var(--text3)', background: meeting.project_id ? 'var(--sage-lt)' : 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px', fontFamily: 'inherit', cursor: 'pointer' }}
+              >
+                <option value="">Projeye bağla...</option>
+                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            )}
+
             <input
               type="datetime-local"
               value={meeting.scheduled_at ? meeting.scheduled_at.slice(0, 16) : ''}
@@ -525,6 +568,11 @@ export default function MeetingDetail() {
                   </div>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
                     <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, fontWeight: 600, background: s.bg, color: s.text }}>{s.label}</span>
+                    <button onClick={() => toggleVisibility('task', task.id, task.visibility)}
+                      style={{ fontSize: 11, padding: '2px 7px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600,
+                        background: task.visibility === 'client' ? '#EFF6FF' : 'var(--warm)', color: task.visibility === 'client' ? '#6A9BCC' : 'var(--text3)' }}>
+                      {task.visibility === 'client' ? '👁' : '🔒'}
+                    </button>
                     <button onClick={() => { setTaskTitleVal(task.title); setEditingTaskId(task.id); }} style={iconBtn}>✎</button>
                     <button onClick={() => deleteTask(task.id)} style={iconBtn}>×</button>
                   </div>
@@ -590,7 +638,12 @@ export default function MeetingDetail() {
                     {d.content}
                   </p>
                 )}
-                <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
+                  <button onClick={() => toggleVisibility('decision', d.id, d.visibility)}
+                    style={{ fontSize: 11, padding: '2px 7px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600,
+                      background: d.visibility === 'client' ? '#EFF6FF' : 'var(--warm)', color: d.visibility === 'client' ? '#6A9BCC' : 'var(--text3)' }}>
+                    {d.visibility === 'client' ? '👁' : '🔒'}
+                  </button>
                   <button onClick={() => { setDecisionVal(d.content); setEditingDecisionId(d.id); }} style={iconBtn}>✎</button>
                   <button onClick={() => deleteDecision(d.id)} style={iconBtn}>×</button>
                 </div>
@@ -624,6 +677,11 @@ export default function MeetingDetail() {
                   {c.content}
                 </p>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+                  <button onClick={() => toggleVisibility('commitment', c.id, c.visibility)}
+                    style={{ fontSize: 11, padding: '2px 7px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600,
+                      background: c.visibility === 'client' ? '#EFF6FF' : 'var(--warm)', color: c.visibility === 'client' ? '#6A9BCC' : 'var(--text3)' }}>
+                    {c.visibility === 'client' ? '👁' : '🔒'}
+                  </button>
                   <button
                     onClick={() => toggleCommitment(c)}
                     title={c.resolved ? 'Çözülmedi olarak işaretle' : 'Çözümlendi olarak işaretle'}

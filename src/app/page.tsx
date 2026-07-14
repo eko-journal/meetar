@@ -7,6 +7,7 @@ type Priority = 'high' | 'medium' | 'low';
 type Party = 'me' | 'them';
 
 interface Company { id: string; name: string; }
+interface Project { id: string; name: string; company_id: string | null; }
 
 interface Task {
   title: string;
@@ -52,13 +53,19 @@ export default function Home() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [newCompany, setNewCompany] = useState('');
   const [addingCompany, setAddingCompany] = useState(false);
+  const [projectId, setProjectId] = useState('');
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading]   = useState(false);
   const [result, setResult]     = useState<ExtractResult | null>(null);
   const [error, setError]       = useState('');
 
   useEffect(() => {
-    fetch('/api/companies').then(r => r.json()).then(data => {
-      if (Array.isArray(data)) setCompanies(data);
+    Promise.all([
+      fetch('/api/companies').then(r => r.json()),
+      fetch('/api/projects').then(r => r.json()),
+    ]).then(([c, p]) => {
+      if (Array.isArray(c)) setCompanies(c);
+      if (Array.isArray(p)) setProjects(p);
     });
   }, []);
 
@@ -88,7 +95,7 @@ export default function Home() {
       const res = await fetch('/api/meetings/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, type, notes, company_id: companyId || null, meeting_date: meetingDate || null }),
+        body: JSON.stringify({ title, type, notes, company_id: companyId || null, meeting_date: meetingDate || null, project_id: projectId || null }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Hata');
@@ -111,6 +118,7 @@ export default function Home() {
           <span style={{ fontWeight: 600, fontSize: 16, color: 'var(--black)', letterSpacing: '-0.3px' }}>meetar</span>
         </div>
         <div style={{ display: 'flex', gap: 20, fontSize: 13 }}>
+          <Link href="/projects" style={{ color: 'var(--text2)', textDecoration: 'none' }}>Projeler</Link>
           <Link href="/dashboard" style={{ color: 'var(--text2)', textDecoration: 'none' }}>Dashboard</Link>
           <Link href="/" style={{ color: 'var(--clay)', fontWeight: 600, textDecoration: 'none' }}>+ Yeni Toplantı</Link>
         </div>
@@ -193,6 +201,14 @@ export default function Home() {
               </>
             )}
           </div>
+
+          {/* Proje */}
+          {projects.length > 0 && (
+            <select value={projectId} onChange={e => setProjectId(e.target.value)} style={{ ...inputStyle, color: projectId ? 'var(--black)' : 'var(--text3)' }}>
+              <option value="">Projeye bağla (opsiyonel)</option>
+              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          )}
 
           {/* Notlar */}
           <textarea

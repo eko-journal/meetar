@@ -169,6 +169,7 @@ export default function Dashboard() {
           <span style={{ fontWeight: 600, fontSize: 16, color: 'var(--black)', letterSpacing: '-0.3px' }}>meetar</span>
         </div>
         <div style={{ display: 'flex', gap: 20, fontSize: 13 }}>
+          <Link href="/projects" style={{ color: 'var(--text2)', textDecoration: 'none' }}>Projeler</Link>
           <Link href="/dashboard" style={{ color: 'var(--clay)', fontWeight: 600, textDecoration: 'none' }}>Dashboard</Link>
           <Link href="/" style={{ color: 'var(--text2)', textDecoration: 'none' }}>+ Yeni Toplantı</Link>
         </div>
