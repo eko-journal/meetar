@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 
 type Priority = 'high' | 'medium' | 'low';
 type Party = 'me' | 'them';
@@ -73,9 +74,15 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 p-6">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl font-bold mb-1">meetar</h1>
+    <div className="min-h-screen bg-gray-950 text-gray-100">
+      <nav className="border-b border-gray-900 px-6 py-4 flex items-center justify-between">
+        <span className="font-bold text-lg">meetar</span>
+        <div className="flex gap-4 text-sm">
+          <Link href="/dashboard" className="text-gray-500 hover:text-gray-300 transition-colors">Dashboard</Link>
+          <Link href="/" className="text-white font-medium">+ Yeni Toplantı</Link>
+        </div>
+      </nav>
+      <div className="max-w-3xl mx-auto p-6">
         <p className="text-gray-500 text-sm mb-8">Toplantı notunu gir, AI çıkarsın</p>
 
         <form onSubmit={handleSubmit} className="space-y-4 mb-8">
@@ -222,3 +229,4 @@ export default function Home() {
     </div>
   );
 }
+
