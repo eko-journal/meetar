@@ -23,6 +23,7 @@ interface Meeting {
   type: string;
   summary: string;
   created_at: string;
+  company_name: string | null;
   tasks: Task[];
   decisions: { id: string; content: string }[];
   commitments: { id: string; party: string; content: string; resolved: boolean }[];
@@ -199,6 +200,9 @@ export default function Dashboard() {
                           {meetingTypeLabel[m.type]}
                         </span>
                         <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--black)' }}>{m.title}</span>
+                        {m.company_name && (
+                          <span style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'var(--font-mono)' }}>· {m.company_name}</span>
+                        )}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
                         <span style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font-mono)' }}>

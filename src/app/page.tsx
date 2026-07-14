@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 type Priority = 'high' | 'medium' | 'low';
 type Party = 'me' | 'them';
+
+interface Company { id: string; name: string; }
 
 interface Task {
   title: string;
@@ -13,9 +15,7 @@ interface Task {
   priority: Priority;
 }
 
-interface Decision {
-  content: string;
-}
+interface Decision { content: string; }
 
 interface Commitment {
   party: Party;
@@ -37,13 +37,45 @@ const priorityStyle: Record<Priority, { bg: string; text: string; label: string 
   low:    { bg: '#F1F6E8', text: '#5F7F3F', label: 'Düşük'  },
 };
 
+const inputStyle: React.CSSProperties = {
+  border: '1px solid var(--border)', borderRadius: 8,
+  padding: '10px 14px', fontSize: 14, color: 'var(--black)',
+  background: 'white', outline: 'none', fontFamily: 'inherit', width: '100%',
+};
+
 export default function Home() {
-  const [title, setTitle] = useState('');
-  const [type, setType] = useState<'customer' | 'internal' | 'partner'>('internal');
-  const [notes, setNotes] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<ExtractResult | null>(null);
-  const [error, setError] = useState('');
+  const [title, setTitle]       = useState('');
+  const [type, setType]         = useState<'customer' | 'internal' | 'partner'>('internal');
+  const [notes, setNotes]       = useState('');
+  const [companyId, setCompanyId] = useState('');
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [newCompany, setNewCompany] = useState('');
+  const [addingCompany, setAddingCompany] = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [result, setResult]     = useState<ExtractResult | null>(null);
+  const [error, setError]       = useState('');
+
+  useEffect(() => {
+    fetch('/api/companies').then(r => r.json()).then(data => {
+      if (Array.isArray(data)) setCompanies(data);
+    });
+  }, []);
+
+  async function handleAddCompany() {
+    if (!newCompany.trim()) return;
+    const res = await fetch('/api/companies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newCompany.trim() }),
+    });
+    const company = await res.json();
+    if (company?.id) {
+      setCompanies(prev => [...prev, company].sort((a, b) => a.name.localeCompare(b.name)));
+      setCompanyId(company.id);
+      setNewCompany('');
+      setAddingCompany(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -55,7 +87,7 @@ export default function Home() {
       const res = await fetch('/api/meetings/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, type, notes }),
+        body: JSON.stringify({ title, type, notes, company_id: companyId || null }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Hata');
@@ -69,7 +101,6 @@ export default function Home() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--ivory)' }}>
-      {/* Nav */}
       <nav style={{ borderBottom: '1px solid var(--border)', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'white' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <svg width="20" height="20" viewBox="0 0 140 140" fill="none">
@@ -85,11 +116,13 @@ export default function Home() {
       </nav>
 
       <div style={{ maxWidth: 680, margin: '0 auto', padding: '40px 24px' }}>
-        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 28, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+        <p style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 28, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           Toplantı notunu gir, AI çıkarsın
         </p>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
+
+          {/* Başlık + Tür */}
           <div style={{ display: 'flex', gap: 10 }}>
             <input
               type="text"
@@ -97,20 +130,12 @@ export default function Home() {
               value={title}
               onChange={e => setTitle(e.target.value)}
               required
-              style={{
-                flex: 1, border: '1px solid var(--border)', borderRadius: 8,
-                padding: '10px 14px', fontSize: 14, color: 'var(--black)',
-                background: 'white', outline: 'none', fontFamily: 'inherit',
-              }}
+              style={{ ...inputStyle, flex: 1 }}
             />
             <select
               value={type}
               onChange={e => setType(e.target.value as typeof type)}
-              style={{
-                border: '1px solid var(--border)', borderRadius: 8,
-                padding: '10px 14px', fontSize: 13, color: 'var(--text2)',
-                background: 'white', outline: 'none', fontFamily: 'inherit',
-              }}
+              style={{ ...inputStyle, width: 'auto', color: 'var(--text2)' }}
             >
               <option value="internal">İç toplantı</option>
               <option value="customer">Müşteri</option>
@@ -118,18 +143,56 @@ export default function Home() {
             </select>
           </div>
 
+          {/* Şirket seçimi */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {addingCompany ? (
+              <>
+                <input
+                  type="text"
+                  placeholder="Şirket adı"
+                  value={newCompany}
+                  onChange={e => setNewCompany(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddCompany())}
+                  autoFocus
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                <button type="button" onClick={handleAddCompany}
+                  style={{ padding: '10px 16px', borderRadius: 8, background: 'var(--clay)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                  Ekle
+                </button>
+                <button type="button" onClick={() => setAddingCompany(false)}
+                  style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--warm)', color: 'var(--text2)', border: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>
+                  İptal
+                </button>
+              </>
+            ) : (
+              <>
+                <select
+                  value={companyId}
+                  onChange={e => setCompanyId(e.target.value)}
+                  style={{ ...inputStyle, color: companyId ? 'var(--black)' : 'var(--text3)' }}
+                >
+                  <option value="">Şirket seç (opsiyonel)</option>
+                  {companies.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                <button type="button" onClick={() => setAddingCompany(true)}
+                  style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--warm)', color: 'var(--text2)', border: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, whiteSpace: 'nowrap' }}>
+                  + Yeni
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Notlar */}
           <textarea
             placeholder="Toplantı notlarını veya Teams transkriptini buraya yapıştır..."
             value={notes}
             onChange={e => setNotes(e.target.value)}
             rows={10}
             required
-            style={{
-              border: '1px solid var(--border)', borderRadius: 8,
-              padding: '12px 14px', fontSize: 13, color: 'var(--black)',
-              background: 'white', outline: 'none', resize: 'none',
-              fontFamily: 'inherit', lineHeight: 1.6,
-            }}
+            style={{ ...inputStyle, resize: 'none', lineHeight: 1.6 }}
           />
 
           <button
@@ -155,13 +218,10 @@ export default function Home() {
 
         {result && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-            {/* Özet */}
             <Section label="Özet">
-              <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.7, whiteSpace: 'pre-line' }}>{result.summary}</p>
+              <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.7, whiteSpace: 'pre-line', margin: 0 }}>{result.summary}</p>
             </Section>
 
-            {/* Görevler */}
             {result.tasks.length > 0 && (
               <Section label={`Görevler (${result.tasks.length})`}>
                 {result.tasks.map((task, i) => {
@@ -185,7 +245,6 @@ export default function Home() {
               </Section>
             )}
 
-            {/* Kararlar */}
             {result.decisions.length > 0 && (
               <Section label={`Kararlar (${result.decisions.length})`}>
                 {result.decisions.map((d, i) => (
@@ -197,7 +256,6 @@ export default function Home() {
               </Section>
             )}
 
-            {/* Taahhütler */}
             {result.commitments.length > 0 && (
               <Section label={`Taahhütler (${result.commitments.length})`}>
                 {result.commitments.map((c, i) => (
@@ -216,7 +274,6 @@ export default function Home() {
               </Section>
             )}
 
-            {/* Sonraki toplantı */}
             {result.next_meeting_topics.length > 0 && (
               <Section label="Sonraki toplantıya taşı">
                 {result.next_meeting_topics.map((t, i) => (
@@ -226,7 +283,6 @@ export default function Home() {
                 ))}
               </Section>
             )}
-
           </div>
         )}
       </div>
@@ -237,7 +293,7 @@ export default function Home() {
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px' }}>
-      <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', marginBottom: 12 }}>{label}</p>
+      <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', marginBottom: 12, margin: '0 0 12px' }}>{label}</p>
       {children}
     </div>
   );

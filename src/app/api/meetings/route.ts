@@ -4,8 +4,11 @@ import { sql } from '@/lib/db';
 export async function GET() {
   try {
     const { rows: meetings } = await sql`
-      SELECT id, title, type, summary, created_at FROM meetings
-      ORDER BY created_at DESC
+      SELECT m.id, m.title, m.type, m.summary, m.created_at,
+             c.name as company_name
+      FROM meetings m
+      LEFT JOIN companies c ON c.id = m.company_id
+      ORDER BY m.created_at DESC
     `;
 
     for (const m of meetings) {
