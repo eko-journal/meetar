@@ -36,6 +36,7 @@ interface Meeting {
   company_name: string | null;
   scheduled_at: string;
   summary: string | null;
+  raw_notes: string | null;
   tasks: Task[];
   decisions: Decision[];
   commitments: Commitment[];
@@ -83,6 +84,7 @@ export default function MeetingDetail() {
   const [errorMsg, setErrorMsg] = useError();
 
   // Inline editing
+  const [notesExpanded, setNotesExpanded] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleVal, setTitleVal] = useState('');
   const [editingSummary, setEditingSummary] = useState(false);
@@ -455,6 +457,35 @@ export default function MeetingDetail() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+
+          {/* ORİJİNAL NOTLAR */}
+          {meeting.raw_notes && (
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+              <button
+                onClick={() => setNotesExpanded(p => !p)}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '14px 24px', background: 'none', border: 'none', cursor: 'pointer',
+                  fontFamily: 'inherit', textAlign: 'left',
+                }}
+              >
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)' }}>
+                  Orijinal Notlar
+                </span>
+                <span style={{ fontSize: 10, color: 'var(--text3)' }}>{notesExpanded ? '▲' : '▼'}</span>
+              </button>
+              {notesExpanded && (
+                <div style={{ borderTop: '1px solid var(--border)', padding: '16px 24px' }}>
+                  <pre style={{
+                    fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap', lineHeight: 1.7,
+                    margin: 0, fontFamily: 'var(--font-mono)', wordBreak: 'break-word',
+                  }}>
+                    {meeting.raw_notes}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* GÖREVLER */}
           <Section label="Görevler">
