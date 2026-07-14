@@ -15,7 +15,15 @@ export async function POST(req: NextRequest) {
     type === 'customer' ? 'Müşteri toplantısı' :
     type === 'partner'  ? 'Ortak toplantısı'   : 'İç toplantı';
 
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const dayNames = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+  const todayName = dayNames[now.getDay()];
+
   const prompt = `Sen bir toplantı asistanısın. Aşağıdaki toplantı notlarını/transkriptini analiz et ve yapılandırılmış bilgi çıkar.
+
+Bugünün tarihi: ${todayStr} (${todayName})
+Bu tarihten hareketle "cuma günü", "bu hafta", "gelecek hafta", "yarın" gibi ifadeleri kesin tarihe (YYYY-MM-DD) çevir.
 
 Toplantı: ${title}
 Tür: ${meetingTypeLabel}
